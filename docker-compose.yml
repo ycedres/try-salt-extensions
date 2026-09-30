@@ -1,0 +1,26 @@
+services:
+  salt-master:
+    build:
+      context: .
+      dockerfile: Dockerfile.master
+    container_name: salt-master
+    hostname: salt-master
+    networks:
+      - salt-net
+
+  salt-minion:
+    build:
+      context: .
+      dockerfile: Dockerfile.minion
+    container_name: salt-minion
+    hostname: salt-minion
+    depends_on:
+      - salt-master
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - salt-net
+
+networks:
+  salt-net:
+    driver: bridge

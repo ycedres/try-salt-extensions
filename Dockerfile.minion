@@ -1,0 +1,25 @@
+FROM almalinux:9
+
+RUN rpm -q ca-certificates; \
+    ls -l /etc/pki/tls/certs/ca-bundle.crt; \
+    ls -l /etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem; \
+    readlink -f /etc/pki/tls/certs/ca-bundle.crt; \
+    test -s /etc/pki/tls/certs/ca-bundle.crt; \
+    echo "CA bundle test exit code: $?"
+
+# Install dnf-plugins-core and add official Docker CE repo
+RUN dnf install -y dnf-plugins-core && \
+    dnf config-manager --add-repo https://download.docker.com/linux/centos/docker-ce.repo
+
+# Install Salt repo, Salt minion, Docker CE CLI + Engine, docker python library, and saltext.dockermod
+RUN curl -fsSL https://github.com/saltstack/salt-install-guide/releases/latest/download/salt.repo -o /etc/yum.repos.d/salt.repo && \
+    dnf clean expire-cache && \
+    dnf install -y salt-minion docker-ce docker-ce-cli containerd.io && \
+    /opt/saltstack/salt/salt-pip install docker saltext.dockermod && \
+    dnf clean all
+
+# Configure Minion connection to Master
+RUN echo "master: salt-master" > /etc/salt/minion.d/master.conf && \
+    echo "id: salt-minion" >> /etc/salt/minion.d/master.conf
+
+CMD ["/usr/bin/salt-minion"]
