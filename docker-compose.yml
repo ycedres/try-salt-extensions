@@ -5,6 +5,8 @@ services:
       dockerfile: Dockerfile.master
     container_name: salt-master
     hostname: salt-master
+    volumes:
+      - ./salt-states:/srv/salt
     networks:
       - salt-net
 
@@ -18,6 +20,7 @@ services:
       - salt-master
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
+      - /home/ygutierrez/src/salt-extensions/saltext-dockermod/src/saltext:/opt/saltstack/salt/extras-3.14/saltext
     networks:
       - salt-net
 

@@ -6,12 +6,13 @@ ACTION="start"
 REBUILD=false
 
 usage() {
-    echo "Usage: $0 [start|stop|restart] [--rebuild|-r]"
+    echo "Usage: $0 [start|stop|restart|deploy] [--rebuild|-r]"
     echo ""
     echo "Commands:"
     echo "  start     Start the salt-master and salt-minion containers (default)"
     echo "  stop      Stop and remove the containers"
     echo "  restart   Restart the containers"
+    echo "  deploy    Clear .pyc cache & restart salt-minion to reload host code"
     echo ""
     echo "Options:"
     echo "  --rebuild, -r   Force a clean rebuild of the Docker images before starting"
@@ -31,6 +32,10 @@ while [[ $# -gt 0 ]]; do
             ;;
         restart)
             ACTION="restart"
+            shift
+            ;;
+        deploy)
+            ACTION="deploy"
             shift
             ;;
         --rebuild|-r)
@@ -71,5 +76,17 @@ case "$ACTION" in
         echo "==> Restarting containers..."
         docker compose down
         docker compose up -d
+        ;;
+
+    deploy)
+        if [ "$REBUILD" = true ]; then
+            echo "==> Rebuilding salt-minion image (no-cache)..."
+            docker compose build --no-cache salt-minion
+        fi
+        echo "==> Cleaning cached .pyc files inside salt-minion..."
+        docker exec salt-minion find /opt/saltstack/salt/extras-3.14/saltext/dockermod -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
+
+        echo "==> Deploying code changes to salt-minion..."
+        docker compose restart salt-minion
         ;;
 esac
